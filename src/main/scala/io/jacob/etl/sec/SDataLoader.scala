@@ -11,6 +11,14 @@ import io.jacob.dbf.DBFUtil
   */
 object SDataLoader {
 
+  var workDir:String = _
+  var shQuote: Map[String, String] = Map()
+  var szQuote: Map[String, String] = Map()
+  var szSecInfo: Map[String, String] = Map()
+  var szNewSecInfo: Map[String, String] = Map()
+
+  var szQuoteUpdated: List[String] = List()
+
   def loadData(dataPath: String): Unit = {
     val rootPath = new File(dataPath)
     for (f <- rootPath.list().filter(x => x.endsWith(".gz") || x.endsWith(".zip")).sorted) {
@@ -22,7 +30,7 @@ object SDataLoader {
     }
   }
 
-  def loadSZQuote(dataFile: String) = {
+  def loadSZQuote(dataFile: String): Unit = {
 
     val zipFile = new ZipFile(dataFile)
     val zipInputStream = new ZipInputStream(new FileInputStream(dataFile))
@@ -38,32 +46,17 @@ object SDataLoader {
 
       DBFUtil.dbfConvert(inputStream, outputStream)
 
-
-      //      val outFile = new File(entry.getName)
-      //      if (!outFile.getParentFile.exists())
-      //        outFile.getParentFile.mkdirs()
-      //
-      //      if (!outFile.exists())
-      //        outFile.createNewFile()
-      //
-      //      val outputStream = new FileOutputStream(outFile)
-      //      var ch: Int = inputStream.read()
-      //      while (ch != -1) {
-      //        outputStream.write(ch)
-      //        ch = inputStream.read()
-      //      }
-      //
-
       val reader = new BufferedReader(
-                    new InputStreamReader(
-                      new ByteArrayInputStream(outputStream.toByteArray)))
+        new InputStreamReader(
+          new ByteArrayInputStream(outputStream.toByteArray)))
 
-      var line = reader.readLine()
-      var count = 0
-      while(line != null && count < 100) {
-        println(line)
-        line = reader.readLine()
-        count = count+1
+      var quoteLine = reader.readLine()
+      szQuoteUpdated = List()
+
+      while (quoteLine != null) {
+        //        println(line)
+        quoteLine = reader.readLine()
+        updateQuote(quoteLine)
       }
 
       inputStream.close()
@@ -75,8 +68,26 @@ object SDataLoader {
     zipInputStream.close()
   }
 
+  def updateQuote(quote: String): Unit = {
+    val fields = quote.split("\\|")
+
+    if (szQuote.contains(fields(0))) {
+      if (szQuote(fields(0)).equals(quote))
+        return
+    }
+
+    szQuote = szQuote + (fields(0) -> quote)
+    szQuoteUpdated = szQuoteUpdated :+ quote
+  }
+
+  def saveQuote(quotes: List[String], dest: String): Unit = {
+
+  }
+
   def main(args: Array[String]): Unit = {
-    for (path <- args)
-      loadData(path)
+    workDir = args(0)
+
+    for (i <- 1 until args.length)
+      loadData(args(i))
   }
 }
