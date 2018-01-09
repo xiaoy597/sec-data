@@ -5,6 +5,7 @@ import java.nio.file.Paths
 import java.util.zip.{ZipFile, ZipInputStream}
 
 import io.jacob.dbf.DBFUtil
+import org.apache.commons.io.FilenameUtils
 
 /**
   * Created by xiaoy on 2018/1/8.
@@ -12,6 +13,7 @@ import io.jacob.dbf.DBFUtil
 object SDataLoader {
 
   var workDir:String = _
+  var workDate: String = _
   var shQuote: Map[String, String] = Map()
   var szQuote: Map[String, String] = Map()
   var szSecInfo: Map[String, String] = Map()
@@ -20,6 +22,9 @@ object SDataLoader {
   var szQuoteUpdated: List[String] = List()
 
   def loadData(dataPath: String): Unit = {
+    // The dataPath should end with a date string like 20180108
+    workDate = FilenameUtils.getBaseName(dataPath)
+
     val rootPath = new File(dataPath)
     for (f <- rootPath.list().filter(x => x.endsWith(".gz") || x.endsWith(".zip")).sorted) {
       println(f)
@@ -47,8 +52,7 @@ object SDataLoader {
       DBFUtil.dbfConvert(inputStream, outputStream)
 
       val reader = new BufferedReader(
-        new InputStreamReader(
-          new ByteArrayInputStream(outputStream.toByteArray)))
+        new InputStreamReader(new ByteArrayInputStream(outputStream.toByteArray)))
 
       var quoteLine = reader.readLine()
       szQuoteUpdated = List()
@@ -61,6 +65,9 @@ object SDataLoader {
 
       inputStream.close()
       outputStream.close()
+      reader.close()
+
+      saveQuote(szQuoteUpdated, "szse_sec_quote")
 
       entry = zipInputStream.getNextEntry
     }
@@ -81,7 +88,16 @@ object SDataLoader {
   }
 
   def saveQuote(quotes: List[String], dest: String): Unit = {
+    val quoteFile = Paths.get(workDir, "%s-%s.dat".format(dest, workDate)).toFile
 
+    if (!quoteFile.exists())
+      quoteFile.createNewFile()
+
+    val quoteWriter = new FileWriter(quoteFile, true)
+
+    quotes.foreach(quoteWriter.write)
+
+    quoteWriter.close()
   }
 
   def main(args: Array[String]): Unit = {
