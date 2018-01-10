@@ -5,10 +5,14 @@ package io.jacob.etl.sec
   */
 class SZQuoteSnapshot(val dataFilePath: String) extends SDataSnapshot {
 
-  override def getUpdate: (List[String], String) = {
-    val (snapshot, ts) = load(dataFilePath, line => line.split("\\|")(7))
+  override def getUpdate: SDataSnapshot = {
+    val snapshot = load(dataFilePath)
 
-    (snapshot.filter(x => {
+    val ts = if (snapshot.nonEmpty)
+      snapshot.head.split("\\|")(7)
+    else ""
+
+    updateData = snapshot.slice(1, snapshot.size - 1).filter(x => {
       val id = x.split("\\|")(0)
 
       SZQuoteSnapshot.latestSnapshot.get(id) match {
@@ -20,10 +24,16 @@ class SZQuoteSnapshot(val dataFilePath: String) extends SDataSnapshot {
           SZQuoteSnapshot.latestSnapshot += (id -> x)
           true
       }
-    }), ts)
+    })
+
+    this
+  }
+
+  override def save(date:String): Unit = {
+
   }
 }
 
 object SZQuoteSnapshot {
-  var latestSnapshot : Map[String, String] = Map()
+  var latestSnapshot: Map[String, String] = Map()
 }

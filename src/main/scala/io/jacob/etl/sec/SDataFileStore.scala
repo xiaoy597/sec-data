@@ -7,15 +7,22 @@ import java.nio.file.Paths
   * Created by xiaoy on 2018/1/10.
   */
 class SDataFileStore(storeName: String) extends SDataStore(storeName) {
-  override def append(data: List[String]): Unit = {
-    val storeFile = new File(Paths.get(SDataFileStore.storePath, storeName).toString)
+  val storeFile = new File(Paths.get(SDataFileStore.storePath, storeName).toString)
 
-    if(!storeFile.exists())
-      storeFile.createNewFile()
+  if (!storeFile.getParentFile.exists())
+    storeFile.getParentFile.mkdirs()
+
+  if (storeFile.exists())
+    storeFile.delete
+
+  println("Creating %s".format(storeFile.getAbsolutePath))
+  storeFile.createNewFile()
+
+  override def append(data: List[String]): Unit = {
 
     val writer = new FileWriter(storeFile, true)
 
-    data.foreach(writer.write)
+    data.map(_ + "\n").foreach(writer.write)
 
     writer.close()
   }

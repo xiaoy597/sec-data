@@ -1,7 +1,7 @@
 package io.jacob.etl.sec
 
 import java.io._
-import java.util.zip.{ZipFile, ZipInputStream}
+import java.util.zip.{GZIPInputStream, ZipFile, ZipInputStream}
 
 import io.jacob.dbf.DBFUtil
 import org.apache.commons.io.FilenameUtils
@@ -12,47 +12,55 @@ import scala.collection.mutable.ListBuffer
   * Created by xiaoy on 2018/1/10.
   */
 trait SDataSnapshot {
-  def getUpdate: (List[String], String)
+  var updateData: List[String] = List()
+  var updateTS: String = _
 
-  def load(dataFilePath: String, tsfunc: String => String): (List[String], String) = {
-    val zipFile = new ZipFile(dataFilePath)
-    val zipInputStream = new ZipInputStream(new FileInputStream(dataFilePath))
-    val entry = zipInputStream.getNextEntry
+  def getUpdate: SDataSnapshot
+  def save(date: String): Unit
 
-    val snapshot:ListBuffer[String] = ListBuffer()
+  def load(dataFilePath: String):List[String] = {
 
-    printf("Found entry %s\n", entry.getName)
+    val snapshot: ListBuffer[String] = ListBuffer()
 
-    val inputStream = new BufferedInputStream(zipFile.getInputStream(entry))
+    val reader = {
+      if (dataFilePath.endsWith("zip")) {
+        val zipFile = new ZipFile(dataFilePath)
+        val zipInputStream = new ZipInputStream(new FileInputStream(dataFilePath))
+        val entry = zipInputStream.getNextEntry
 
-    val reader = if (dataFilePath.contains("dbf")) {
-      val outputStream = new ByteArrayOutputStream()
+        printf("Found entry %s\n", entry.getName)
 
-      DBFUtil.dbfConvert(inputStream, outputStream)
+        val inputStream = new BufferedInputStream(zipFile.getInputStream(entry))
 
-      new BufferedReader(
-        new InputStreamReader(new ByteArrayInputStream(outputStream.toByteArray)))
-    }else{
-      new BufferedReader(new InputStreamReader(inputStream))
+        if (dataFilePath.contains("dbf")) {
+          val outputStream = new ByteArrayOutputStream()
+
+          DBFUtil.dbfConvert(inputStream, outputStream)
+
+          inputStream.close()
+          zipInputStream.close()
+
+          new BufferedReader(
+            new InputStreamReader(new ByteArrayInputStream(outputStream.toByteArray)))
+        } else {
+          new BufferedReader(new InputStreamReader(inputStream))
+        }
+      } else {
+        new BufferedReader(new InputStreamReader(
+          new GZIPInputStream(new FileInputStream(dataFilePath)), "GBK"))
+      }
     }
 
-    var quoteLine = reader.readLine()
+    var dataLine = reader.readLine()
 
-    val ts = if (quoteLine != null){
-      tsfunc(quoteLine)
-    }else{
-      ""
+    while (dataLine != null) {
+      snapshot += dataLine.replaceAll(" ", "")
+      dataLine = reader.readLine()
     }
 
-    while (quoteLine != null) {
-      quoteLine = reader.readLine()
-      snapshot += quoteLine
-    }
-
-    inputStream.close()
     reader.close()
 
-    (snapshot.toList, ts)
+    snapshot.toList
   }
 }
 
