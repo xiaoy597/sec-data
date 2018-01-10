@@ -6,3 +6,7 @@ package io.jacob.etl.sec
 class SData {
 
 }
+
+object SData {
+  def latestSnapshot : Map[String, String] = Map()
+}
