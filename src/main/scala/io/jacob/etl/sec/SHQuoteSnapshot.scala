@@ -56,7 +56,6 @@ class SHQuoteSnapshot(val dataFilePath: String) extends SDataSnapshot {
 
     SDataFileStore(idxDataStore).append(idxUpdate)
   }
-
 }
 
 object SHQuoteSnapshot {
