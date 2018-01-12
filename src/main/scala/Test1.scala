@@ -16,6 +16,8 @@ object Test1 {
     val l = List(1,2,3,4)
     println(l.slice(1,l.size-1))
 
-    
+    val o: Option[String] = Option.empty[String]
+
+    println(o)
   }
 }
