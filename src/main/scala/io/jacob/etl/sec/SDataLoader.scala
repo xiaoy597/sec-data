@@ -3,6 +3,7 @@ package io.jacob.etl.sec
 import java.io._
 import java.nio.file.Paths
 
+import org.apache.commons.cli.{DefaultParser, Options}
 import org.apache.commons.io.FilenameUtils
 
 /**
@@ -27,9 +28,43 @@ object SDataLoader {
 
 
   def main(args: Array[String]): Unit = {
-    SDataFileStore.storePath = args(0)
+    val parser = new DefaultParser
 
-    for (i <- 1 until args.length)
-      loadData(args(i))
+    import org.apache.commons.cli.Option
+
+    val fsOption = Option.builder("d").longOpt("directory").hasArg.build()
+    val ksOption = Option.builder("k").longOpt("kafka-server-list").hasArg.build()
+
+    val options = new Options()
+
+    options.addOption(fsOption)
+    options.addOption(ksOption)
+
+    var argsLeft: Array[String] = null
+
+    try {
+      val commandLine = parser.parse(options, args)
+
+      if (commandLine.hasOption("d"))
+        SDataFileStore.storePath = commandLine.getOptionValue("d")
+      if (commandLine.hasOption("k"))
+        SDataKafkaStore.serverList = commandLine.getOptionValue("k")
+
+      argsLeft = commandLine.getArgs
+    } catch {
+      case e: Exception =>
+        e.printStackTrace()
+        sys.exit(1)
+    }
+
+    if (SDataFileStore.storePath != null)
+      println("file save directory is %s".format(SDataFileStore.storePath))
+    if (SDataKafkaStore.serverList != null)
+      println("kafka server list is %s".format(SDataKafkaStore.serverList))
+
+    println("arguments is %s".format(argsLeft.mkString(",")))
+
+    //    for (i <- 1 until argsLeft.length)
+    //      loadData(args(i))
   }
 }
