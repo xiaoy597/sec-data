@@ -9,15 +9,17 @@ import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
   */
 class SDataKafkaStore(storeName: String) extends SDataStore(storeName) {
   override def append(data: List[String]): Unit = {
+    var i:Long = 0L
     data.foreach(x => {
-      SDataKafkaStore.producer.send(new ProducerRecord[String, String](storeName, null, x))
+      SDataKafkaStore.producer.send(new ProducerRecord[Long, String](storeName, i, x))
+      i = i + 1
     })
   }
 }
 
 object SDataKafkaStore {
   var serverList: String = _
-  var producer: KafkaProducer[String, String] = _
+  var producer: KafkaProducer[Long, String] = _
   var storeDict: Map[String, SDataKafkaStore] = Map()
 
   def apply(storeName: String): SDataKafkaStore = {
@@ -30,11 +32,11 @@ object SDataKafkaStore {
       props.put("batch.size", "16384")
       props.put("linger.ms", "1")
       props.put("buffer.memory", "33554432")
-      props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+      props.put("key.serializer", "org.apache.kafka.common.serialization.LongSerializer")
       props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
       props.put("compression-codec", "snappy")
 
-      producer = new KafkaProducer[String, String](props)
+      producer = new KafkaProducer[Long, String](props)
     }
 
     storeDict.get(storeName) match {

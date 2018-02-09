@@ -46,15 +46,24 @@ class SHQuoteSnapshot(val dataFilePath: String) extends SDataSnapshot {
         quoteUpdate = quoteUpdate :+ (fields.slice(0, fields.size - 1) :+ updateTS).mkString("|")
     })
 
-    val quoteDataStore =
-      FilenameUtils.getBaseName(dataFilePath).split("\\.")(0) + "-quote-%s.txt".format(date)
+    if (SDataFileStore.storePath != null) {
+      val quoteDataStore =
+        FilenameUtils.getBaseName(dataFilePath).split("\\.")(0) + "-quote-%s.txt".format(date)
 
-    SDataFileStore(quoteDataStore).append(quoteUpdate)
+      SDataFileStore(quoteDataStore).append(quoteUpdate)
 
-    val idxDataStore =
-      FilenameUtils.getBaseName(dataFilePath).split("\\.")(0) + "-idx-%s.txt".format(date)
+      val idxDataStore =
+        FilenameUtils.getBaseName(dataFilePath).split("\\.")(0) + "-idx-%s.txt".format(date)
 
-    SDataFileStore(idxDataStore).append(idxUpdate)
+      SDataFileStore(idxDataStore).append(idxUpdate)
+    }
+
+    if (SDataKafkaStore.serverList != null) {
+      val quoteDataStore = FilenameUtils.getBaseName(dataFilePath).split("\\.")(0) + "-quote"
+      SDataKafkaStore(quoteDataStore).append(quoteUpdate)
+      val idxDataStore = FilenameUtils.getBaseName(dataFilePath).split("\\.")(0) + "-idx"
+      SDataKafkaStore(idxDataStore).append(idxUpdate)
+    }
   }
 }
 

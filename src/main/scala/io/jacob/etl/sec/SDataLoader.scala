@@ -64,7 +64,8 @@ object SDataLoader {
 
     println("arguments is %s".format(argsLeft.mkString(",")))
 
-    //    for (i <- 1 until argsLeft.length)
-    //      loadData(args(i))
+    argsLeft.foreach( dir => {
+      loadData(dir)
+    })
   }
 }
